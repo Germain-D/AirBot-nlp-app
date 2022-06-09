@@ -100,7 +100,7 @@ def vectorize(tokenized_sentence,model):
 
 
 
-def reponse (sentence,model):
+def reponse (sentence,model,df):
     #put sentence to a dataframe
     d = {'text': [sentence]}
     phrase = pd.DataFrame(data=d)
@@ -111,12 +111,9 @@ def reponse (sentence,model):
     phrase['tokens']
 
     #and vectorized it
-    phrase['vectorized'] = phrase['tokens'].apply(vectorize(model))
+    phrase['vectorized'] = phrase['tokens'].apply(vectorize,args=(model,))
     phrase['vectorized']
-
-
-
-    b = float(0)
+    
     compt = 0
     cosi = []
     for i in df.index:
@@ -129,7 +126,7 @@ def reponse (sentence,model):
 
 
 
-def bot(model):
+def bot(model,df):
     flag=True
 
     while(flag==True):
@@ -147,7 +144,7 @@ def bot(model):
                     print("AirBOT: "+greeting(user_response))
                 else:
                     
-                    print("AirBOT:"+reponse(user_response,model))
+                    print("AirBOT:"+reponse(user_response,model,df))
                     #sent_tokens.remove(user_response)
         else:
             flag=False
@@ -164,10 +161,21 @@ def greeting(sentence):
 
 
 def main():
-    df = pd.read_csv('question_responce.csv')	
+    print('Début....')
+    df = pd.read_csv('question_responce.csv')
+    print('csv chargé....')	
+    df[['responce_clean','token_responce']] = preproc_pipe(df['responce'])
+    df[['question_clean','token_question']] = preproc_pipe(df['question'])
+    print('data propre....')
     model = KeyedVectors.load_word2vec_format('glove.twitter.27B.100d.word2vec', binary=False)
+    print('model chargé...')
+
+    df['responce_vect'] = df['token_responce'].apply(vectorize,args=(model,))
+    df['question_vect'] = df['token_question'].apply(vectorize,args=(model,))
+    df=df.dropna()
+    print('vecteurs créé....')
     print("AirBOT: My name is AirBOT. I will answer your queries about our flights. If you want to exit, type Bye!")
-    bot(model)
+    bot(model,df)
 
 
 main()
