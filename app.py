@@ -190,7 +190,9 @@ def index():
     args = request.args
     message = args.get('message')
     print("SENTENCE:", message)
-    tmp = main(message).split(" ")[1:]
+    tmp = main(message).split(" ")
+    if tmp[0][0] == '@':
+        tmp = tmp[1:]
     return (" ").join(tmp)
 
 
