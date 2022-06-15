@@ -162,24 +162,22 @@ def greeting(sentence):
 
 
 
-def main(sentence):
-    print('Début....')
-    df = pd.read_csv('question_responce.csv')
-    print('csv chargé....')	
-    df[['responce_clean','token_responce']] = preproc_pipe(df['responce'])
-    df[['question_clean','token_question']] = preproc_pipe(df['question'])
-    print('data propre....')
-    model = KeyedVectors.load_word2vec_format('glove.twitter.27B.100d.word2vec', binary=False)
-    print('model chargé...')
-
-    df['responce_vect'] = df['token_responce'].apply(vectorize,args=(model,))
-    df['question_vect'] = df['token_question'].apply(vectorize,args=(model,))
-    df=df.dropna()
-    print('vecteurs créé....')
-    print("AirBOT: My name is AirBOT. I will answer your queries about our flights. If you want to exit, type Bye!")
-    return bot(model,df, sentence)
 
 
+print('Début....')
+df = pd.read_csv('question_responce.csv')
+print('csv chargé....')	
+df[['responce_clean','token_responce']] = preproc_pipe(df['responce'])
+df[['question_clean','token_question']] = preproc_pipe(df['question'])
+print('data propre....')
+model = KeyedVectors.load_word2vec_format('glove.twitter.27B.100d.word2vec', binary=False)
+print('model chargé...')
+
+df['responce_vect'] = df['token_responce'].apply(vectorize,args=(model,))
+df['question_vect'] = df['token_question'].apply(vectorize,args=(model,))
+df=df.dropna()
+print('vecteurs créé....')
+print("AirBOT: My name is AirBOT. I will answer your queries about our flights. If you want to exit, type Bye!")
 
 
 app = Flask(__name__)
@@ -190,7 +188,7 @@ def index():
     args = request.args
     message = args.get('message')
     print("SENTENCE:", message)
-    tmp = main(message).split(" ")
+    tmp = bot(model,df, message).split(" ")
     if tmp[0][0] == '@':
         tmp = tmp[1:]
     return (" ").join(tmp)
