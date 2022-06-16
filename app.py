@@ -103,27 +103,55 @@ def vectorize(tokenized_sentence,model):
 
 
 def reponse (sentence,model,df):
-    #put sentence to a dataframe
+
+        #put sentence to a dataframe
     d = {'text': [sentence]}
     phrase = pd.DataFrame(data=d)
-    phrase['text']
-
-    #just tokenize the sentence
-    phrase['tokens'] = phrase['text'].apply(nltk.word_tokenize)
-    phrase['tokens']
+    phrase[['text_clean','text_token']] = preproc_pipe(phrase)
 
     #and vectorized it
-    phrase['vectorized'] = phrase['tokens'].apply(vectorize,args=(model,))
-    phrase['vectorized']
+    phrase['vectorized'] = phrase['text_token'].apply(vectorize,args=(model,))
+
+    #find the topic
+    
+    #creation of the dictonary of topics
+    datafr = df['token_question']
+    datafr = pd.concat([datafr,phrase['text_token']])
+    data_words = datafr
+    id2word = corpora.Dictionary(data_words)# Create Corpus
+  
+
+    texts = data_words# Term Document Frequency
+    corpus = [id2word.doc2bow(text) for text in texts]# View
+   
+
+    num_topics = 20# Build LDA model
+    lda_model = gensim.models.LdaMulticore(corpus=corpus,
+                                        id2word=id2word,
+                                        num_topics=num_topics)# Print the Keyword in the 10 topics
+
+    # add a "topic" column to the dataframe
+
+    df['topic'] = [sorted(lda_model[corpus][text])[0][0] for text in range(len(df))]
+    topic = int([sorted(lda_model[corpus][text])[0][0] for text in range(len(df))][:1][0])
+    dftop = df.mask(df['topic'] == topic)
+    dftop.dropna()
+    
+
+
+    df['vectoriz'] = df['token_question'][df['topic'] == topic].apply(vectorize,args=(model,))
+    datafina = df.dropna().copy()
+    
+    
     
     compt = 0
     cosi = []
-    for i in df.index:
-        cosi.append(float(cosine_similarity(phrase['vectorized'][0].reshape(1, -1),df['question_vect'][i].reshape(1, -1))))
+    for i in datafina.index:
+        cosi.append(float(cosine_similarity(phrase['vectorized'][0].reshape(1, -1),datafina['vectoriz'][i].reshape(1, -1))))
         compt +=1
-    df['cosine'] = cosi
+    datafina.loc[:,['cosine']] = cosi
 
-    return df[['responce','question','cosine']].nlargest(1, ['cosine'])['responce'].values[0]
+    return datafina[['responce_clean','question','cosine']].nlargest(1, ['cosine'])['responce_clean'].values[0]
 
 
 
@@ -136,18 +164,21 @@ def bot(model,df,sentence):
         print("You : "+user_response)
         user_response=user_response.lower()
         if(user_response!='bye'):
-            if(user_response=='thanks' or user_response=='thank you' ):
-                flag=False
-                
-                return "You are welcome.."
+
+            if((greeting(user_response)!=None)):
+            
+                return greeting(user_response)
+            elif((goodbye(user_response)!=None)):
+                return goodbye(user_response)
+            elif((apologies(user_response)!=None)):
+                return apologies(user_response)
+            elif ((thanks(user_response)!=None)):
+                return thanks(user_response)
             else:
-                if(greeting(user_response)!=None):
-                    
-                    return greeting(user_response)
-                else:
-                    
-                    return reponse(user_response,model,df)
-                    #sent_tokens.remove(user_response)
+                
+                return reponse(user_response,model,df)
+               
+
         else:
             flag=False
             
@@ -161,8 +192,29 @@ def greeting(sentence):
             return random.choice(GREETING_RESPONSES)
 
 
+def goodbye(sentence):
+    GOODBYE_INPUTS = ("bye", "goodbye", "see you later", "cya")
+    GOODBYE_RESPONSES = ["see you later", "goodbye", "see you", "cya","have a nice day"]
+
+    for word in sentence.split():
+        if word.lower() in GOODBYE_INPUTS:
+            return random.choice(GOODBYE_RESPONSES)
 
 
+def apologies(sentence):
+    APOLOGIES_INPUTS = ("sorry","my bad","mb","my fault")
+    APOLOGIES_RESPONSES = ["It's alright, I know.","don't worry about it.","no problem","no worries"]
+    for word in sentence.split():
+        if word.lower() in APOLOGIES_INPUTS:
+            return random.choice(APOLOGIES_RESPONSES)
+
+
+def thanks(sentence):
+    THANKS_INPUTS = ("thanks","thank you","thank","thx","thnx",)
+    THANKS_RESPONSES = ["You're welcome","No problem","My pleasure","My pleasure","My pleasure"]
+    for word in sentence.split():
+        if word.lower() in THANKS_INPUTS:
+            return random.choice(THANKS_RESPONSES)            
 
 print('Début....')
 df = pd.read_csv('question_responce.csv')
@@ -189,8 +241,8 @@ def index():
     message = args.get('message')
     print("SENTENCE:", message)
     tmp = bot(model,df, message).split(" ")
-    if tmp[0][0] == '@':
-        tmp = tmp[1:]
+    #if tmp[0][0] == '@':
+       # tmp = tmp[1:]
     return (" ").join(tmp)
 
 
