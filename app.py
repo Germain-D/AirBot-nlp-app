@@ -217,6 +217,7 @@ def thanks(sentence):
             return random.choice(THANKS_RESPONSES)            
 
 print('Début....')
+print('modif')
 df = pd.read_csv('question_responce.csv')
 print('csv chargé....')	
 df[['responce_clean','token_responce']] = preproc_pipe(df['responce'])
@@ -231,7 +232,7 @@ df=df.dropna()
 print('vecteurs créé....')
 print("AirBOT: My name is AirBOT. I will answer your queries about our flights. If you want to exit, type Bye!")
 
-
+#ceci est une modification
 app = Flask(__name__)
 CORS(app)
 @app.route('/')
